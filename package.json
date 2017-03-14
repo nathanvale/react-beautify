@@ -3,7 +3,7 @@
   "name": "react-beautify",
   "displayName": "react-beautify",
   "description": "Beautify JS/JSX/TS/TSX Code",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "publisher": "taichi",
   "galleryBanner": {
     "color": "#61dafb",
@@ -40,9 +40,14 @@
           "type": "string",
           "enum": [
             "prettydiff",
+            "prettydiff2",
             "esformatter"
           ],
           "default": "prettydiff"
+        },
+        "react.beautify.prettydiff2.path": {
+          "description": "Pretty diff 2.x path",
+          "type": "string"
         },
         "react.beautify.configFilePath": {
           "description": "Specifies the workspace relative config filepath",

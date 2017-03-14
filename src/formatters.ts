@@ -5,13 +5,16 @@ import fs = require('fs');
 import _ = require('lodash');
 
 const formatters = {
+    esformatter: esformatterFactory,
     prettydiff: prettydiffFactory,
-    esformatter: esformatterFactory
+    prettydiff2: prettydiff2Factory
 }
 
-export interface Formatter { (src: string, options: any): string; }
+export interface Formatter {
+    (src : string, options : any) : string;
+}
 
-export function make(root: string, impl: string, langId: string): Formatter {
+export function make(root : string, impl : string, langId : string) : Formatter {
     let f = formatters[impl];
     if (f) {
         return f(root, impl, langId);
@@ -19,14 +22,11 @@ export function make(root: string, impl: string, langId: string): Formatter {
     return (src, opt) => src; // NullFormatter
 }
 
-function loadModue(root: string, impl: string, onFail: () => any): any {
+function loadModue(path : string, impl : string, onFail : () => any) : any {
     // load workspace module
-    if (root) {
+    if(path) {
         try {
-            let p = resolve(root, impl);
-            if (p) {
-                return require(p);
-            }
+            return require(path);
         } catch (e) {
             // suppress error
         }
@@ -35,12 +35,14 @@ function loadModue(root: string, impl: string, onFail: () => any): any {
     return onFail();
 }
 
-function prettydiffFactory(root: string, impl: string, langId: string): Formatter {
-    const mod = loadModue(root, impl, () => require(impl));
+function prettydiffFactory(path : string, impl : string, langId : string) : Formatter {
+    const mod = loadModue(path, impl, () => require(impl));
     return (src, options) => {
         let output = mod.api(_.defaultsDeep({}, options, {
-            insize: options.tabSize,
-            inchar: options.insertSpaces ? " " : "\t",
+            insize: options.insize ? options.insize : options.tabSize,
+            inchar: options.inchar ? options.inchar : options.insertSpaces
+                ? " "
+                : "\t",
             source: src,
             mode: 'beautify'
         }, languageOptions[langId]));
@@ -48,8 +50,28 @@ function prettydiffFactory(root: string, impl: string, langId: string): Formatte
     };
 }
 
+function prettydiff2Factory(path : string, impl : string, langId : string) : Formatter {
+    const api = loadModue(path, impl, () => {});
+
+    return (src, options) => {
+        options.lang = langId === "css" ? "css" : options.lang;
+        let output = api(_.defaultsDeep({}, options, {
+            insize: options.insize ? options.insize : options.tabSize,
+            inchar: options.inchar ? options.inchar : options.insertSpaces
+                ? " "
+                : "\t",
+            source: src,
+            mode: 'beautify'
+        },languageOptions[langId]));
+        return output;
+    };
+}
+
 const languageOptions = {
-    javascript: {
+    css: {
+        lang: "css"
+    },
+      javascript: {
         lang: "javascript"
     },
     javascriptreact: {
@@ -67,7 +89,7 @@ const languageOptions = {
     }
 }
 
-function esformatterFactory(root: string, impl: string, langId: string): Formatter {
+function esformatterFactory(root : string, impl : string, langId : string) : Formatter {
     if(langId.startsWith("typescript")) {
         throw "esformatter don't support typescript. use prettydiff.";
     }
@@ -79,7 +101,9 @@ function esformatterFactory(root: string, impl: string, langId: string): Formatt
     return (src, options) => {
         return mod.format(src, _.defaultsDeep({}, options, {
             indent: {
-                value: options.insertSpaces ? _.repeat(" ", options.tabSize) : "\t"
+                value: options.insertSpaces
+                    ? _.repeat(" ", options.tabSize)
+                    : "\t"
             }
         }));
     };
